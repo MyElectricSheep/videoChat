@@ -1,7 +1,15 @@
 import { useState, useEffect, useRef } from "react";
 import io from "socket.io-client";
 import Peer from "simple-peer"
+import {Howl} from 'howler'
+import ringtone from './sounds/ringtone.mp3'
 import "./App.css";
+
+const ringtoneSound = new Howl({
+  src: [ringtone],
+  loop: true,
+  preload: true
+})
 
 function App() {
   const [stream, setStream] = useState();
@@ -24,6 +32,7 @@ function App() {
     socket.current.on("yourId", (id) => {
       setMe((prevMe) => ({ ...prevMe, id }));
     });
+
     socket.current.on("connectedUsers", (users) => {
       console.log({ users });
       setConnectedUsers(users);
@@ -31,6 +40,7 @@ function App() {
 
     socket.current.on('hey', (data) => {
          setReceivingCall(true);
+         ringtoneSound.play();
          setCaller(data.from)
          setCallerSignal(data.signal)
     })
@@ -68,6 +78,44 @@ function App() {
       const peer = new Peer({
           initiator: true,
           trickle: false,
+          config: {
+            iceServers: [
+                {url:'stun:stun01.sipphone.com'},
+                {url:'stun:stun.ekiga.net'},
+                {url:'stun:stun.fwdnet.net'},
+                {url:'stun:stun.ideasip.com'},
+                {url:'stun:stun.iptel.org'},
+                {url:'stun:stun.rixtelecom.se'},
+                {url:'stun:stun.schlund.de'},
+                {url:'stun:stun.l.google.com:19302'},
+                {url:'stun:stun1.l.google.com:19302'},
+                {url:'stun:stun2.l.google.com:19302'},
+                {url:'stun:stun3.l.google.com:19302'},
+                {url:'stun:stun4.l.google.com:19302'},
+                {url:'stun:stunserver.org'},
+                {url:'stun:stun.softjoys.com'},
+                {url:'stun:stun.voiparound.com'},
+                {url:'stun:stun.voipbuster.com'},
+                {url:'stun:stun.voipstunt.com'},
+                {url:'stun:stun.voxgratia.org'},
+                {url:'stun:stun.xten.com'},
+                {
+                url: 'turn:numb.viagenie.ca',
+                credential: 'muazkh',
+                username: 'webrtc@live.com'
+                },
+                {
+                url: 'turn:192.158.29.39:3478?transport=udp',
+                credential: 'JZEOEt2V3Qb0y27GRntt2u2PAYA=',
+                username: '28224511:1379330808'
+                },
+                {
+                url: 'turn:192.158.29.39:3478?transport=tcp',
+                credential: 'JZEOEt2V3Qb0y27GRntt2u2PAYA=',
+                username: '28224511:1379330808'
+                }
+            ]
+        },
           stream
       });
       peer.on('signal', data => {
@@ -90,6 +138,7 @@ function App() {
 
   const acceptCall = () => {
       setCallAccepted(true)
+      ringtoneSound.unload();
       const peer = new Peer({
           initiator: false,
           trickle: false,
@@ -168,21 +217,25 @@ function App() {
       <h1>{caller && caller.nickname} is calling you</h1>
       <button onClick={acceptCall}>Accept!</button>
       </>}
+      {connected && <>
+      <video
+              style={{ width: "50%", height: "50%" }}
+              playsInline
+              muted
+              ref={userVideo}
+              autoPlay
+              name="userVideo"
+            ></video>
+      </>}
       <>
         {callAccepted && (
           <>
             <video
               style={{ width: "50%", height: "50%" }}
               playsInline
-              muted
-              ref={userVideo}
-              autoPlay
-            ></video>{" "}
-            <video
-              style={{ width: "50%", height: "50%" }}
-              playsInline
               ref={partnerVideo}
               autoPlay
+              name="partnerVideo"
             ></video>
           </>
         )}
