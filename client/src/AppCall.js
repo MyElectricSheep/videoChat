@@ -25,6 +25,7 @@ function App() {
   const userVideo = useRef();
   const partnerVideo = useRef();
   const socket = useRef();
+  const myPeer = useRef();
 
   useEffect(() => {
     socket.current = io.connect("/");
@@ -118,6 +119,8 @@ function App() {
         },
           stream
       });
+      myPeer.current = peer;
+
       peer.on('signal', data => {
         socket.current.emit('callUser', { 
             userToCall: id,
@@ -125,11 +128,18 @@ function App() {
             from: me
         })
       })
+
       peer.on('stream', stream => {
           if (partnerVideo.current) {
               partnerVideo.current.srcObject = stream;
           }
       })
+
+      peer.on('error', (err)=>{
+        console.log(err.message)
+        // endCall()
+      })
+
       socket.current.on('callAccepted', signal => {
           setCallAccepted(true)
           peer.signal(signal)
@@ -152,6 +162,13 @@ function App() {
           partnerVideo.current.srcObject = stream
       })
       peer.signal(callerSignal)
+  }
+
+  const endCall = () => {
+    console.log({myPeer})
+    // myPeer.current.destroy()
+    socket.current.emit('close', { to: caller })
+    window.location.reload()
   }
 
   return (
@@ -213,10 +230,6 @@ function App() {
             );
           })}
       </>
-      {receivingCall && !callAccepted && <>
-      <h1>{caller && caller.nickname} is calling you</h1>
-      <button onClick={acceptCall}>Accept!</button>
-      </>}
       {connected && <>
       <video
               style={{ width: "50%", height: "50%" }}
@@ -239,7 +252,15 @@ function App() {
             ></video>
           </>
         )}
+        {callAccepted && (
+          <button onClick={() => {} // add endCall() here
+          }>End call</button>
+        )}
       </>
+      {receivingCall && !callAccepted && <>
+      <h1>{caller && caller.nickname} is calling you</h1>
+      <button onClick={acceptCall}>Accept!</button>
+      </>}
     </>
   );
 }
